@@ -23,7 +23,9 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://wakie-talkie.vercel.app',
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://wakie-talkie.vercel.app' 
+    : (process.env.FRONTEND_URL || 'http://localhost:3002'),
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
