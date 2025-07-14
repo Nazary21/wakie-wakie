@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
+  origin: process.env.FRONTEND_URL || 'https://wakie-talkie.vercel.app',
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -159,7 +159,7 @@ async function initializeServices() {
 
 // Start the server
 app.listen(PORT, async () => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://wakie-talkie.vercel.app';
   const apiBaseUrl = process.env.NODE_ENV === 'production' 
     ? `https://wakie-wakie-production.up.railway.app/api`
     : `http://localhost:${PORT}/api`;
