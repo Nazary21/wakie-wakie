@@ -1,8 +1,20 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { generateAudioFromText, cleanupFile, getVoiceOptions } = require('./openaiService');
 
-// Initialize Telegram Bot
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {polling: true});
+// Telegram bot instance (lazy initialization)
+let bot = null;
+
+// Initialize Telegram bot lazily
+function getTelegramBot() {
+  if (!bot) {
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+      throw new Error('TELEGRAM_BOT_TOKEN environment variable is required');
+    }
+    bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {polling: true});
+    console.log('✅ Telegram bot initialized');
+  }
+  return bot;
+}
 
 // Store user voice preferences (in production, use a database)
 const userVoices = new Map();
@@ -11,6 +23,8 @@ const userVoices = new Map();
  * Initialize all Telegram bot event handlers
  */
 function initializeTelegramBot() {
+  const bot = getTelegramBot(); // Get the bot instance
+
   console.log('🤖 Initializing Telegram bot...');
 
   // Handle /start command
@@ -181,6 +195,7 @@ Just send any text message and I'll convert it to audio!
  * @returns {Promise<Object>} - Bot information
  */
 async function getBotInfo() {
+  const bot = getTelegramBot(); // Get the bot instance
   try {
     const botInfo = await bot.getMe();
     return {

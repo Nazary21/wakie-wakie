@@ -2,10 +2,22 @@ const OpenAI = require('openai');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAI client instance (lazy initialization)
+let openai = null;
+
+// Initialize OpenAI client lazily
+function getOpenAIClient() {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    console.log('✅ OpenAI client initialized');
+  }
+  return openai;
+}
 
 // Create temp directory for audio files
 const tempDir = path.join(__dirname, '../temp');
@@ -40,7 +52,7 @@ async function generateAudioFromText(text, voice = 'alloy', speed = 0.8) {
     }
 
     // Generate audio using OpenAI TTS
-    const mp3 = await openai.audio.speech.create({
+    const mp3 = await getOpenAIClient().audio.speech.create({
       model: "tts-1", // Use tts-1-hd for higher quality but slower processing
       voice: voice,
       input: text.trim(),
