@@ -1,0 +1,180 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
+// Import services
+const { initializeTelegramBot, getBotInfo } = require('./services/telegramService');
+const { cleanupOldFiles } = require('./services/openaiService');
+
+// Import routes
+const apiRoutes = require('./routes/apiRoutes');
+
+// Initialize Express app
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`📝 ${timestamp} - ${req.method} ${req.path} - ${req.ip}`);
+  next();
+});
+
+// API Routes
+app.use('/api', apiRoutes);
+
+// Root endpoint
+app.get('/', async (req, res) => {
+  try {
+    const botInfo = await getBotInfo();
+    res.json({ 
+      message: 'Telegram Text-to-Audio Bot Server',
+      status: 'running',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      bot: botInfo ? {
+        active: true,
+        username: botInfo.username,
+        name: botInfo.first_name
+      } : {
+        active: false,
+        error: 'Bot not responding'
+      },
+      endpoints: {
+        health: '/api/health',
+        generateAudio: '/api/generate-audio',
+        voices: '/api/voices',
+        botInfo: '/api/bot-info',
+        validateText: '/api/validate-text'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('🚨 Server error:', error);
+  
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      error: 'Invalid JSON in request body',
+      code: 'INVALID_JSON'
+    });
+  }
+  
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'Request payload too large',
+      code: 'PAYLOAD_TOO_LARGE'
+    });
+  }
+  
+  res.status(500).json({
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR',
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint not found',
+    code: 'NOT_FOUND',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// Initialize services
+async function initializeServices() {
+  try {
+    console.log('🚀 Starting Telegram Text-to-Audio Bot Server...');
+    
+    // Validate required environment variables
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+      throw new Error('TELEGRAM_BOT_TOKEN is required');
+    }
+    
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is required');
+    }
+    
+    console.log('✅ Environment variables validated');
+    
+    // Initialize Telegram bot
+    initializeTelegramBot();
+    
+    // Schedule cleanup of old files every hour
+    setInterval(() => {
+      cleanupOldFiles();
+    }, 60 * 60 * 1000); // 1 hour
+    
+    console.log('✅ Services initialized successfully');
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize services:', error.message);
+    process.exit(1);
+  }
+}
+
+// Start the server
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3002'}`);
+  console.log(`📱 API Base URL: http://localhost:${PORT}/api`);
+  
+  // Initialize services
+  await initializeServices();
+  
+  console.log('🎉 Server is ready and running!');
+  console.log('📋 Available endpoints:');
+  console.log(`   • GET  /              - Server info`);
+  console.log(`   • GET  /api/health    - Health check`);
+  console.log(`   • POST /api/generate-audio - Generate TTS audio`);
+  console.log(`   • GET  /api/voices    - Get voice options`);
+  console.log(`   • GET  /api/bot-info  - Get bot information`);
+  console.log(`   • POST /api/validate-text - Validate text input`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  
+  // Clean up temp files
+  try {
+    cleanupOldFiles(0); // Clean up all files
+    console.log('✅ Cleaned up temporary files');
+  } catch (error) {
+    console.error('❌ Error during cleanup:', error.message);
+  }
+  
+  console.log('👋 Server shut down completed');
+  process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+}); 
