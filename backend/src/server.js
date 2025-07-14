@@ -114,8 +114,21 @@ async function initializeServices() {
     console.log('🔍 Environment check:');
     console.log(`   • NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`   • PORT: ${process.env.PORT || 'not set'}`);
-    console.log(`   • TELEGRAM_BOT_TOKEN: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ set' : '❌ missing'}`);
-    console.log(`   • OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅ set' : '❌ missing'}`);
+    console.log(`   • FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
+    console.log(`   • TELEGRAM_BOT_TOKEN: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ set (' + process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...)' : '❌ missing'}`);
+    console.log(`   • OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅ set (' + process.env.OPENAI_API_KEY.substring(0, 10) + '...)' : '❌ missing'}`);
+    
+    // Debug: Show all environment variables starting with our prefixes
+    console.log('🔍 All environment variables:');
+    Object.keys(process.env).forEach(key => {
+      if (key.startsWith('TELEGRAM_') || key.startsWith('OPENAI_') || key.startsWith('NODE_') || key.startsWith('PORT') || key.startsWith('FRONTEND_')) {
+        const value = process.env[key];
+        const maskedValue = key.includes('TOKEN') || key.includes('KEY') 
+          ? value.substring(0, 10) + '...' 
+          : value;
+        console.log(`   ${key}: ${maskedValue}`);
+      }
+    });
     
     // Validate required environment variables
     if (!process.env.TELEGRAM_BOT_TOKEN) {
@@ -146,9 +159,14 @@ async function initializeServices() {
 
 // Start the server
 app.listen(PORT, async () => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+  const apiBaseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://wakie-wakie-production.up.railway.app/api`
+    : `http://localhost:${PORT}/api`;
+    
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3002'}`);
-  console.log(`📱 API Base URL: http://localhost:${PORT}/api`);
+  console.log(`🌐 Frontend URL: ${frontendUrl}`);
+  console.log(`📱 API Base URL: ${apiBaseUrl}`);
   
   // Initialize services
   await initializeServices();
