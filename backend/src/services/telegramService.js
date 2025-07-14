@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-const { generateAudioFromText, cleanupFile, getVoiceOptions } = require('./openaiService');
+const { generateAudioFromText, cleanupFile, getVoiceOptions, getSpeedOptions } = require('./openaiService');
 
 // Telegram bot instance (lazy initialization)
 let bot = null;
@@ -16,8 +16,9 @@ function getTelegramBot() {
   return bot;
 }
 
-// Store user voice preferences (in production, use a database)
+// Store user preferences (in production, use a database)
 const userVoices = new Map();
+const userSpeeds = new Map();
 
 /**
  * Initialize all Telegram bot event handlers
@@ -42,9 +43,10 @@ I can convert your text messages into high-quality audio files using OpenAI's TT
 2. I'll convert it to audio instantly
 3. You'll receive an MP3 file you can play
 
-🎙️ **Voice Options:**
+🎙️ **Voice & Speed Options:**
 • Type /voice to see available voices
-• Default voice: Alloy (natural and balanced)
+• Type /speed to see available speeds
+• Default: Alloy voice at 0.8x speed
 
 💡 **Tips:**
 • Works with any language
@@ -89,6 +91,38 @@ Just send me some text to get started! 🚀
     }
   });
 
+  // Handle /speed command
+  bot.onText(/\/speed/, (msg) => {
+    const chatId = msg.chat.id;
+    const currentSpeed = userSpeeds.get(chatId) || 0.8;
+    const speeds = getSpeedOptions();
+    
+    let speedList = '⚡ **Available Speeds:**\n\n';
+    speeds.forEach(speed => {
+      const marker = speed.value === currentSpeed ? '✅' : '🔸';
+      speedList += `${marker} **${speed.label}** - ${speed.description}\n`;
+    });
+    
+    speedList += `\nTo set speed, send: /setspeed [speed]\nExample: /setspeed 1.0\n\n`;
+    speedList += `Your current speed: **${currentSpeed}x**`;
+    
+    bot.sendMessage(chatId, speedList, { parse_mode: 'Markdown' });
+  });
+
+  // Handle /setspeed command
+  bot.onText(/\/setspeed (.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const speed = parseFloat(match[1]);
+    const validSpeeds = getSpeedOptions().map(s => s.value);
+    
+    if (validSpeeds.includes(speed)) {
+      userSpeeds.set(chatId, speed);
+      bot.sendMessage(chatId, `✅ Speed set to: **${speed}x**`, { parse_mode: 'Markdown' });
+    } else {
+      bot.sendMessage(chatId, `❌ Invalid speed. Use /speed to see available options.`);
+    }
+  });
+
   // Handle /help command
   bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
@@ -98,6 +132,8 @@ Just send me some text to get started! 🚀
 🔹 **/start** - Welcome message
 🔹 **/voice** - See available voices
 🔹 **/setvoice [name]** - Change voice
+🔹 **/speed** - See available speeds
+🔹 **/setspeed [speed]** - Change speed
 🔹 **/help** - Show this help
 
 📝 **Usage:**
@@ -141,15 +177,16 @@ Just send any text message and I'll convert it to audio!
     const processingMsg = await bot.sendMessage(chatId, "🎵 Converting text to audio...");
     
     try {
-      // Get user's preferred voice or use default
+      // Get user's preferred voice and speed or use defaults
       const voice = userVoices.get(chatId) || 'alloy';
+      const speed = userSpeeds.get(chatId) || 0.8;
       
       // Generate audio
-      const audioPath = await generateAudioFromText(text, voice);
+      const audioPath = await generateAudioFromText(text, voice, speed);
       
       // Send audio file
       await bot.sendAudio(chatId, audioPath, {
-        caption: `🎵 Here's your audio, ${userName}! (Voice: ${voice})\n\n"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
+        caption: `🎵 Here's your audio, ${userName}! (Voice: ${voice}, Speed: ${speed}x)\n\n"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
         title: 'Generated Audio',
         performer: 'TTS Bot'
       });
@@ -228,10 +265,30 @@ function setUserVoice(chatId, voice) {
   userVoices.set(chatId, voice);
 }
 
+/**
+ * Get user speed preference
+ * @param {number} chatId - Chat ID
+ * @returns {number} - User's preferred speed
+ */
+function getUserSpeed(chatId) {
+  return userSpeeds.get(chatId) || 0.8;
+}
+
+/**
+ * Set user speed preference
+ * @param {number} chatId - Chat ID
+ * @param {number} speed - Speed preference
+ */
+function setUserSpeed(chatId, speed) {
+  userSpeeds.set(chatId, speed);
+}
+
 module.exports = {
   initializeTelegramBot,
   getBotInfo,
   getUserVoice,
   setUserVoice,
+  getUserSpeed,
+  setUserSpeed,
   bot
 }; 

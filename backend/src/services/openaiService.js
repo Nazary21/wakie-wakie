@@ -134,9 +134,26 @@ function getVoiceOptions() {
   ];
 }
 
+/**
+ * Get available speed options
+ * @returns {Array} - Array of speed options with descriptions
+ */
+function getSpeedOptions() {
+  return [
+    { value: 0.5, label: '0.5x', description: 'Very Slow' },
+    { value: 0.75, label: '0.75x', description: 'Slow' },
+    { value: 0.8, label: '0.8x', description: 'Relaxed (Default)' },
+    { value: 1.0, label: '1.0x', description: 'Normal' },
+    { value: 1.25, label: '1.25x', description: 'Fast' },
+    { value: 1.5, label: '1.5x', description: 'Very Fast' },
+    { value: 2.0, label: '2.0x', description: 'Maximum' }
+  ];
+}
+
 module.exports = {
   generateAudioFromText,
   cleanupFile,
   cleanupOldFiles,
-  getVoiceOptions
+  getVoiceOptions,
+  getSpeedOptions
 }; 
