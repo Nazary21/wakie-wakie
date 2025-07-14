@@ -5,13 +5,7 @@
   "devCommand": "npm start",
   "installCommand": "npm install",
   "framework": "create-react-app",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://your-backend-url.railway.app/api/$1"
-    }
-  ],
   "env": {
-    "REACT_APP_API_URL": "@api_url"
+    "REACT_APP_API_URL": "@react_app_api_url"
   }
 } 

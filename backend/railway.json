@@ -8,7 +8,7 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm install",
-    "watchPatterns": ["src/**/*"]
+    "startCommand": "npm start"
   },
   "environments": {
     "production": {
