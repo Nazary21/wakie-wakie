@@ -1,7 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
+// Load environment variables (Railway sets them directly, but this handles local dev)
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+} catch (error) {
+  // Railway doesn't need .env files, environment variables are set directly
+  console.log('🔧 Running in production mode - using Railway environment variables');
+}
 
 // Import services
 const { initializeTelegramBot, getBotInfo } = require('./services/telegramService');
@@ -104,14 +111,19 @@ app.use('*', (req, res) => {
 async function initializeServices() {
   try {
     console.log('🚀 Starting Telegram Text-to-Audio Bot Server...');
+    console.log('🔍 Environment check:');
+    console.log(`   • NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.log(`   • PORT: ${process.env.PORT || 'not set'}`);
+    console.log(`   • TELEGRAM_BOT_TOKEN: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ set' : '❌ missing'}`);
+    console.log(`   • OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅ set' : '❌ missing'}`);
     
     // Validate required environment variables
     if (!process.env.TELEGRAM_BOT_TOKEN) {
-      throw new Error('TELEGRAM_BOT_TOKEN is required');
+      throw new Error('TELEGRAM_BOT_TOKEN is required. Please set it in Railway Variables tab.');
     }
     
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is required');
+      throw new Error('OPENAI_API_KEY is required. Please set it in Railway Variables tab.');
     }
     
     console.log('✅ Environment variables validated');
