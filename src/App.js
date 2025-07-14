@@ -29,7 +29,7 @@ function App() {
   const [error, setError] = useState('');
   
   // Get API URL from environment variables
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://wakie-wakie-production.up.railway.app';
   
   console.log('API Base URL:', API_BASE_URL); // Debug log
   
