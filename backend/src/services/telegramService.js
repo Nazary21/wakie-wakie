@@ -34,29 +34,44 @@ function initializeTelegramBot() {
     const userName = msg.from.first_name || 'there';
     
     const welcomeMessage = `
-🎵 Welcome to Text-to-Audio Bot, ${userName}! 🎵
+🎵 **Welcome to Text-to-Audio Bot, ${userName}!** 🎵
 
-I can convert your text messages into high-quality audio files using OpenAI's TTS technology.
+I convert your text messages into high-quality audio using OpenAI's advanced TTS technology.
 
-📝 **How to use:**
-1. Simply send me any text message
-2. I'll convert it to audio instantly
-3. You'll receive an MP3 file you can play
+🚀 **Quick Start:**
+1. Send me any text message
+2. Get instant MP3 audio file
+3. Play it anywhere!
 
-🎙️ **Voice & Speed Options:**
-• Type /voice to see available voices
-• Type /speed to see available speeds
-• Default: Alloy voice at 0.8x speed
+🎛️ **Customize Your Experience:**
 
-💡 **Tips:**
-• Works with any language
-• Supports long texts (up to 4096 characters)
-• Perfect for creating voice memos, learning pronunciation, or accessibility
+🎙️ **Choose Your Voice** (6 options):
+• \`/voice\` - See all voices
+• \`/setvoice nova\` - Set energetic voice
+• \`/setvoice alloy\` - Set balanced voice (default)
 
-Just send me some text to get started! 🚀
+⚡ **Adjust Speaking Speed** (7 options):
+• \`/speed\` - See all speeds  
+• \`/setspeed 1.0\` - Normal speed
+• \`/setspeed 0.8\` - Relaxed speed (default)
+• \`/setspeed 1.5\` - Fast speed
+
+💡 **Perfect For:**
+• 📚 Learning pronunciation in any language
+• 🎧 Creating voice memos
+• ♿ Accessibility support
+• 🎯 Quick audio summaries
+
+📱 **Pro Tips:**
+• Works with any language (auto-detected)
+• Supports up to 4096 characters
+• Each user gets personal preferences
+• Use \`/help\` for detailed instructions
+
+**Ready to try?** Just send me some text! 🌟
     `;
     
-    bot.sendMessage(chatId, welcomeMessage);
+    bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
   });
 
   // Handle /voice command
@@ -71,8 +86,11 @@ Just send me some text to get started! 🚀
       voiceList += `${marker} **${voice.label}** - ${voice.description}\n`;
     });
     
-    voiceList += `\nTo use a specific voice, send: /setvoice [voice_name]\nExample: /setvoice nova\n\n`;
-    voiceList += `Your current voice: **${currentVoice}**`;
+    voiceList += `\n📝 **How to Change Voice:**\n`;
+    voiceList += `Send: \`/setvoice [voice_name]\`\n`;
+    voiceList += `Example: \`/setvoice nova\` or \`/setvoice echo\`\n\n`;
+    voiceList += `🎯 **Your Current Voice:** **${currentVoice}**\n\n`;
+    voiceList += `💡 **Tip:** Also try \`/speed\` to adjust speaking speed!`;
     
     bot.sendMessage(chatId, voiceList, { parse_mode: 'Markdown' });
   });
@@ -103,8 +121,11 @@ Just send me some text to get started! 🚀
       speedList += `${marker} **${speed.label}** - ${speed.description}\n`;
     });
     
-    speedList += `\nTo set speed, send: /setspeed [speed]\nExample: /setspeed 1.0\n\n`;
-    speedList += `Your current speed: **${currentSpeed}x**`;
+    speedList += `\n📝 **How to Change Speed:**\n`;
+    speedList += `Send: \`/setspeed [speed]\`\n`;
+    speedList += `Example: \`/setspeed 1.0\` or \`/setspeed 1.5\`\n\n`;
+    speedList += `🎯 **Your Current Speed:** **${currentSpeed}x**\n\n`;
+    speedList += `💡 **Tip:** Also try \`/voice\` to change speaking voice!`;
     
     bot.sendMessage(chatId, speedList, { parse_mode: 'Markdown' });
   });
@@ -129,22 +150,43 @@ Just send me some text to get started! 🚀
     const helpMessage = `
 📖 **Help & Commands:**
 
-🔹 **/start** - Welcome message
-🔹 **/voice** - See available voices
+🎙️ **Voice Commands:**
+🔹 **/voice** - See all available voices
 🔹 **/setvoice [name]** - Change voice
-🔹 **/speed** - See available speeds
-🔹 **/setspeed [speed]** - Change speed
-🔹 **/help** - Show this help
+   Example: \`/setvoice nova\`
 
-📝 **Usage:**
-Just send any text message and I'll convert it to audio!
+⚡ **Speed Commands:**
+🔹 **/speed** - See all available speeds
+🔹 **/setspeed [speed]** - Change speaking speed
+   Example: \`/setspeed 1.25\`
+   Available: 0.5, 0.75, 0.8, 1.0, 1.25, 1.5, 2.0
+
+📋 **General:**
+🔹 **/start** - Welcome message & introduction
+🔹 **/help** - Show this help menu
+
+📝 **How to Use:**
+1. **Set your preferences** (optional):
+   • \`/setvoice echo\` - for professional sound
+   • \`/setspeed 1.0\` - for normal speed
+2. **Send any text message** - I'll convert it to audio!
+3. **Receive MP3 file** with your chosen voice & speed
+
+⚙️ **Current Defaults:**
+• Voice: Alloy (balanced, natural)
+• Speed: 0.8x (relaxed pace)
 
 ⚠️ **Limits:**
 • Maximum 4096 characters per message
-• Supported languages: Auto-detected
-• Audio format: MP3
+• Supported: All languages (auto-detected)
+• Format: High-quality MP3 audio
 
-❓ **Need help?** Just send me a text message to try it out!
+💡 **Pro Tips:**
+• Try different voices for different moods
+• Use slower speeds for learning languages
+• Faster speeds work great for quick summaries
+
+❓ **Questions?** Just send me any text to try it out!
     `;
     
     bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
