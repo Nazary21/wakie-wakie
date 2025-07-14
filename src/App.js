@@ -28,6 +28,11 @@ function App() {
   const [selectedSpeed, setSelectedSpeed] = useState(0.8);
   const [error, setError] = useState('');
   
+  // Get API URL from environment variables
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  
+  console.log('API Base URL:', API_BASE_URL); // Debug log
+  
   const audioRef = useRef(null);
   const textAreaRef = useRef(null);
 
@@ -79,7 +84,7 @@ function App() {
     try {
       console.log('Generating audio with OpenAI TTS...');
       
-      const response = await fetch('/api/generate-audio', {
+      const response = await fetch(`${API_BASE_URL}/api/generate-audio`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
