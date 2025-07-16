@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateAudioFromText, cleanupFile, getVoiceOptions } = require('../services/openaiService');
+const { generateAudioFromText, generateVoicePreview, cleanupFile, getVoiceOptions } = require('../services/openaiService');
 const { getBotInfo } = require('../services/telegramService');
 
 const router = express.Router();
@@ -94,6 +94,64 @@ router.get('/voices', (req, res) => {
     res.status(500).json({ 
       error: 'Failed to get voice options',
       code: 'VOICES_ERROR'
+    });
+  }
+});
+
+/**
+ * POST /api/voice-preview
+ * Generate voice preview audio
+ */
+router.post('/voice-preview', async (req, res) => {
+  try {
+    const { voice = 'alloy', speed = 1.0 } = req.body;
+    
+    // Validate voice
+    const validVoices = getVoiceOptions().map(v => v.value);
+    if (!validVoices.includes(voice)) {
+      return res.status(400).json({ 
+        error: 'Invalid voice selection',
+        code: 'INVALID_VOICE',
+        validVoices
+      });
+    }
+    
+    // Generate preview audio
+    const audioBuffer = await generateVoicePreview(voice, speed);
+    
+    // Set headers for audio response
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length,
+      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    // Send the audio buffer
+    res.send(audioBuffer);
+    
+  } catch (error) {
+    console.error('❌ Error in /api/voice-preview:', error.message);
+    
+    // Handle different types of errors
+    if (error.message.includes('API key')) {
+      return res.status(401).json({ 
+        error: 'OpenAI API key is invalid or missing',
+        code: 'INVALID_API_KEY'
+      });
+    }
+    
+    if (error.message.includes('quota')) {
+      return res.status(429).json({ 
+        error: 'OpenAI API quota exceeded',
+        code: 'QUOTA_EXCEEDED'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to generate voice preview',
+      code: 'PREVIEW_ERROR',
+      message: error.message
     });
   }
 });

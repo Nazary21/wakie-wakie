@@ -120,18 +120,75 @@ function cleanupOldFiles(maxAge = 60 * 60 * 1000) {
 }
 
 /**
- * Get available voice options
- * @returns {Array} - Array of voice options with descriptions
+ * Get available voice options with expanded selection
+ * @returns {Array} - Array of voice options with detailed descriptions
  */
 function getVoiceOptions() {
   return [
-    { value: 'alloy', label: 'Alloy', description: 'Balanced, natural' },
-    { value: 'echo', label: 'Echo', description: 'Clear, professional' },
-    { value: 'fable', label: 'Fable', description: 'Expressive, storytelling' },
-    { value: 'onyx', label: 'Onyx', description: 'Deep, authoritative' },
-    { value: 'nova', label: 'Nova', description: 'Bright, energetic' },
-    { value: 'shimmer', label: 'Shimmer', description: 'Soft, gentle' }
+    // OpenAI TTS Voices (Current)
+    { 
+      value: 'alloy', 
+      label: 'Alloy', 
+      description: 'Balanced and natural - great for general use',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Neutral',
+      style: 'Conversational'
+    },
+    { 
+      value: 'echo', 
+      label: 'Echo', 
+      description: 'Clear and professional - perfect for business',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Male',
+      style: 'Professional'
+    },
+    { 
+      value: 'fable', 
+      label: 'Fable', 
+      description: 'Expressive storytelling - ideal for narratives',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Neutral',
+      style: 'Expressive'
+    },
+    { 
+      value: 'onyx', 
+      label: 'Onyx', 
+      description: 'Deep and authoritative - commanding presence',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Male',
+      style: 'Authoritative'
+    },
+    { 
+      value: 'nova', 
+      label: 'Nova', 
+      description: 'Bright and energetic - youthful and dynamic',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Female',
+      style: 'Energetic'
+    },
+    { 
+      value: 'shimmer', 
+      label: 'Shimmer', 
+      description: 'Soft and gentle - warm and soothing',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Female',
+      style: 'Gentle'
+    }
   ];
+}
+
+/**
+ * Get sample text for voice previews
+ * @returns {string} - Sample text for voice preview
+ */
+function getVoicePreviewText() {
+  return "Hello! This is a preview of my voice. I can speak clearly and naturally, making your text come alive with personality and emotion.";
 }
 
 /**
@@ -150,10 +207,42 @@ function getSpeedOptions() {
   ];
 }
 
+/**
+ * Generate voice preview audio
+ * @param {string} voice - The voice to preview
+ * @param {number} speed - Speech speed (0.25 to 4.0)
+ * @returns {Promise<Buffer>} - Audio buffer for the preview
+ */
+async function generateVoicePreview(voice = 'alloy', speed = 1.0) {
+  try {
+    const previewText = getVoicePreviewText();
+    
+    // Generate audio using OpenAI TTS
+    const mp3 = await getOpenAIClient().audio.speech.create({
+      model: "tts-1",
+      voice: voice,
+      input: previewText,
+      speed: speed,
+    });
+
+    // Convert response to buffer
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    
+    console.log(`✅ Voice preview generated for: ${voice} (${buffer.length} bytes)`);
+    return buffer;
+    
+  } catch (error) {
+    console.error('❌ Error generating voice preview:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   generateAudioFromText,
+  generateVoicePreview,
   cleanupFile,
   cleanupOldFiles,
   getVoiceOptions,
-  getSpeedOptions
+  getSpeedOptions,
+  getVoicePreviewText
 }; 

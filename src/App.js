@@ -4,14 +4,16 @@ import {
   Mic, 
   Play, 
   Pause, 
-  Send, 
-  Calendar, 
+  Download, 
   Clock, 
   Volume2, 
   CheckCircle,
   Loader2,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  PlayCircle,
+  Send,
+  Calendar
 } from 'lucide-react';
 
 function App() {
@@ -19,14 +21,13 @@ function App() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
-  const [deliveryMode, setDeliveryMode] = useState('now'); // 'now' or 'schedule'
   const [isSuccess, setIsSuccess] = useState(false);
-  const [scheduledTime, setScheduledTime] = useState('');
   const [audioDuration, setAudioDuration] = useState(0);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
   const [selectedSpeed, setSelectedSpeed] = useState(0.8);
   const [error, setError] = useState('');
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [currentPreviewVoice, setCurrentPreviewVoice] = useState(null);
   
   // Get API URL from environment variables
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://wakie-wakie-production.up.railway.app';
@@ -34,16 +35,65 @@ function App() {
   console.log('API Base URL:', API_BASE_URL); // Debug log
   
   const audioRef = useRef(null);
+  const previewAudioRef = useRef(null);
   const textAreaRef = useRef(null);
 
   // Voice options for OpenAI TTS
   const voiceOptions = [
-    { value: 'alloy', label: 'Alloy - Balanced, natural' },
-    { value: 'echo', label: 'Echo - Clear, professional' },
-    { value: 'fable', label: 'Fable - Expressive, storytelling' },
-    { value: 'onyx', label: 'Onyx - Deep, authoritative' },
-    { value: 'nova', label: 'Nova - Bright, energetic' },
-    { value: 'shimmer', label: 'Shimmer - Soft, gentle' }
+    { 
+      value: 'alloy', 
+      label: 'Alloy', 
+      description: 'Balanced and natural - great for general use',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Neutral',
+      style: 'Conversational'
+    },
+    { 
+      value: 'echo', 
+      label: 'Echo', 
+      description: 'Clear and professional - perfect for business',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Male',
+      style: 'Professional'
+    },
+    { 
+      value: 'fable', 
+      label: 'Fable', 
+      description: 'Expressive storytelling - ideal for narratives',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Neutral',
+      style: 'Expressive'
+    },
+    { 
+      value: 'onyx', 
+      label: 'Onyx', 
+      description: 'Deep and authoritative - commanding presence',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Male',
+      style: 'Authoritative'
+    },
+    { 
+      value: 'nova', 
+      label: 'Nova', 
+      description: 'Bright and energetic - youthful and dynamic',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Female',
+      style: 'Energetic'
+    },
+    { 
+      value: 'shimmer', 
+      label: 'Shimmer', 
+      description: 'Soft and gentle - warm and soothing',
+      provider: 'OpenAI',
+      accent: 'Neutral',
+      gender: 'Female',
+      style: 'Gentle'
+    }
   ];
 
   // Speed options for TTS
@@ -140,30 +190,59 @@ function App() {
 
   // Proceed to delivery options
   const proceedToDelivery = () => {
-    setShowDeliveryOptions(true);
+    // setShowDeliveryOptions(true); // Removed as per edit hint
   };
 
-  // Send message via Telegram (simulated for web interface)
-  const sendMessage = async () => {
-    // Show success message
-    setIsSuccess(true);
-    
-    // Reset after 3 seconds
-    setTimeout(() => {
-      setIsSuccess(false);
-      setText('');
-      setAudioUrl(null);
-      setShowDeliveryOptions(false);
-      setDeliveryMode('now');
-      setScheduledTime('');
-      setError('');
-      setSelectedVoice('alloy'); // Reset voice
-      setSelectedSpeed(0.8); // Reset speed
-      // Reset textarea height
-      if (textAreaRef.current) {
-        textAreaRef.current.style.height = 'auto';
+  // Voice preview functionality
+  const playVoicePreview = async (voice) => {
+    try {
+      setIsPreviewPlaying(true);
+      setCurrentPreviewVoice(voice);
+      
+      const response = await fetch(`${API_BASE_URL}/api/voice-preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          voice: voice,
+          speed: selectedSpeed
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate voice preview');
       }
-    }, 3000);
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      if (previewAudioRef.current) {
+        previewAudioRef.current.src = audioUrl;
+        previewAudioRef.current.play();
+      }
+      
+    } catch (error) {
+      console.error('Error playing voice preview:', error);
+      setError('Failed to play voice preview. Please try again.');
+    }
+  };
+
+  const handlePreviewEnded = () => {
+    setIsPreviewPlaying(false);
+    setCurrentPreviewVoice(null);
+  };
+
+  // Download functionality
+  const downloadAudio = () => {
+    if (!audioUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = audioUrl;
+    link.download = `generated-audio-${selectedVoice}-${Date.now()}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Get current time for scheduling
@@ -208,12 +287,12 @@ function App() {
           >
             <h1 className="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-2">
               <MessageSquare className="w-8 h-8" />
-              Text to Audio Telegram
+              AI Voice Generator
               <Sparkles className="w-6 h-6 text-yellow-400" />
             </h1>
-            <p className="text-blue-200">Convert your text to voice messages and send via Telegram</p>
+            <p className="text-blue-200">Convert your text into high-quality audio with multiple voice options</p>
             <p className="text-blue-300 text-sm mt-2">
-              Powered by OpenAI TTS • 6 Voice Options • Multi-language Support
+              Powered by OpenAI TTS • 6 Voice Options • Voice Preview • Download Ready
             </p>
           </motion.div>
 
@@ -239,10 +318,10 @@ function App() {
                   </div>
                   <h2 className="text-3xl font-bold text-white mb-4">Message Sent Successfully!</h2>
                   <p className="text-blue-200 text-lg">
-                    Your voice message has been {deliveryMode === 'now' ? 'sent immediately' : `scheduled for ${scheduledTime}`}
+                    Your voice message has been {/* deliveryMode === 'now' ? 'sent immediately' : `scheduled for ${scheduledTime}` */}
                   </p>
                 </motion.div>
-              ) : !showDeliveryOptions ? (
+              ) : (
                 // Text Input & Audio Generation
                 <motion.div
                   key="input"
@@ -253,20 +332,56 @@ function App() {
                 >
                   {/* Voice Selection */}
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">
+                    <label className="block text-white text-sm font-medium mb-3">
                       Choose Voice:
                     </label>
-                    <select 
-                      value={selectedVoice} 
-                      onChange={(e) => setSelectedVoice(e.target.value)}
-                      className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
+                    <div className="space-y-3">
                       {voiceOptions.map((voice) => (
-                        <option key={voice.value} value={voice.value} className="bg-gray-800 text-white">
-                          {voice.label}
-                        </option>
+                        <div
+                          key={voice.value}
+                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                            selectedVoice === voice.value
+                              ? 'border-blue-400 bg-blue-500/20'
+                              : 'border-white/20 bg-white/5 hover:border-white/40'
+                          }`}
+                          onClick={() => setSelectedVoice(voice.value)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  selectedVoice === voice.value ? 'bg-blue-400' : 'bg-white/30'
+                                }`}></div>
+                                <h3 className="text-white font-semibold">{voice.label}</h3>
+                                <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70">
+                                  {voice.provider}
+                                </span>
+                              </div>
+                              <p className="text-blue-200 text-sm mb-2">{voice.description}</p>
+                              <div className="flex items-center gap-4 text-xs text-white/60">
+                                <span>👤 {voice.gender}</span>
+                                <span>🎭 {voice.style}</span>
+                                <span>🌍 {voice.accent}</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                playVoicePreview(voice.value);
+                              }}
+                              disabled={isPreviewPlaying && currentPreviewVoice === voice.value}
+                              className="ml-4 p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 rounded-full transition-colors"
+                            >
+                              {isPreviewPlaying && currentPreviewVoice === voice.value ? (
+                                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                              ) : (
+                                <PlayCircle className="w-4 h-4 text-white" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
                   {/* Speed Selection */}
@@ -368,16 +483,16 @@ function App() {
                         </button>
                         
                         <div className="flex-1 text-white/80 text-sm">
-                          Voice: {voiceOptions.find(v => v.value === selectedVoice)?.label.split(' - ')[1] || selectedVoice} • Speed: {selectedSpeed}x
+                          Voice: {voiceOptions.find(v => v.value === selectedVoice)?.label || selectedVoice} • Speed: {selectedSpeed}x
                         </div>
                       </div>
                       
                       <button
-                        onClick={proceedToDelivery}
-                        className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
+                        onClick={downloadAudio}
+                        className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
                       >
-                        <Send className="w-4 h-4" />
-                        Send to Telegram
+                        <Download className="w-4 h-4" />
+                        Download Audio
                       </button>
                       
                       <audio
@@ -388,95 +503,13 @@ function App() {
                       />
                     </motion.div>
                   )}
-                </motion.div>
-              ) : (
-                // Delivery Options
-                <motion.div
-                  key="delivery"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-2">When to Send?</h2>
-                    <p className="text-blue-200">Choose when to deliver your voice message</p>
-                  </div>
-
-                  {/* Delivery Mode Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setDeliveryMode('now')}
-                      className={`p-6 rounded-2xl border-2 transition-all ${
-                        deliveryMode === 'now' 
-                          ? 'border-blue-400 bg-blue-500/20' 
-                          : 'border-white/20 bg-white/5 hover:border-white/40'
-                      }`}
-                    >
-                      <Send className="w-8 h-8 text-blue-400 mb-4" />
-                      <h3 className="text-white text-lg font-semibold mb-2">Send Now</h3>
-                      <p className="text-blue-200 text-sm">Deliver immediately</p>
-                    </button>
-
-                    <button
-                      onClick={() => setDeliveryMode('schedule')}
-                      className={`p-6 rounded-2xl border-2 transition-all ${
-                        deliveryMode === 'schedule' 
-                          ? 'border-purple-400 bg-purple-500/20' 
-                          : 'border-white/20 bg-white/5 hover:border-white/40'
-                      }`}
-                    >
-                      <Calendar className="w-8 h-8 text-purple-400 mb-4" />
-                      <h3 className="text-white text-lg font-semibold mb-2">Schedule</h3>
-                      <p className="text-blue-200 text-sm">Choose date & time</p>
-                    </button>
-                  </div>
-
-                  {/* Schedule Time Picker */}
-                  {deliveryMode === 'schedule' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white/5 rounded-2xl p-6 border border-white/10"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <Clock className="w-5 h-5 text-purple-400" />
-                        <h3 className="text-white text-lg font-semibold">Schedule Time</h3>
-                      </div>
-                      <input
-                        type="datetime-local"
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        min={getCurrentDateTime()}
-                        className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
-                      />
-                    </motion.div>
-                  )}
-
-                  {/* Contact Selection */}
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                    <h3 className="text-white text-lg font-semibold mb-4">Send to</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
-                        <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-bold">ME</span>
-                        </div>
-                        <span className="text-white">My Telegram</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Send Button */}
-                  <div className="pt-4">
-                    <button
-                      onClick={sendMessage}
-                      disabled={deliveryMode === 'schedule' && !scheduledTime}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 rounded-xl text-white font-medium transition-all duration-300 flex items-center justify-center gap-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-5 h-5" />
-                      {deliveryMode === 'now' ? 'Send Now' : 'Schedule Message'}
-                    </button>
-                  </div>
+                  
+                  {/* Hidden audio element for voice previews */}
+                  <audio
+                    ref={previewAudioRef}
+                    onEnded={handlePreviewEnded}
+                    className="hidden"
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
