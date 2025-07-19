@@ -62,14 +62,15 @@ app.get('/', async (req, res) => {
         health: '/api/health',
         generateAudio: '/api/generate-audio',
         voices: '/api/voices',
+        voicePreview: '/api/voice-preview/:voice',
         botInfo: '/api/bot-info',
         validateText: '/api/validate-text'
       }
     });
   } catch (error) {
     res.status(500).json({
-      message: 'Server error',
-      error: error.message
+      error: 'Server error',
+      message: error.message
     });
   }
 });
@@ -144,7 +145,7 @@ async function initializeServices() {
     console.log('✅ Environment variables validated');
     
     // Initialize Telegram bot
-    initializeTelegramBot();
+    await initializeTelegramBot();
     
     // Schedule cleanup of old files every hour
     setInterval(() => {

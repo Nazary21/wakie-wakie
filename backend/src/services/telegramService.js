@@ -10,8 +10,32 @@ function getTelegramBot() {
     if (!process.env.TELEGRAM_BOT_TOKEN) {
       throw new Error('TELEGRAM_BOT_TOKEN environment variable is required');
     }
-    bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {polling: true});
-    console.log('✅ Telegram bot initialized');
+    
+    // Better polling configuration to fix delays and failures
+    const pollingOptions = {
+      polling: {
+        interval: 300, // Poll every 300ms for faster response
+        autoStart: true,
+        params: {
+          timeout: 10, // 10 second timeout for long polling
+          limit: 100   // Process up to 100 updates at once
+        }
+      }
+    };
+    
+    bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, pollingOptions);
+    
+    // Add error handling for polling
+    bot.on('polling_error', (error) => {
+      console.error('🚨 Telegram polling error:', error.message);
+      // Don't crash the server, just log the error
+    });
+    
+    bot.on('error', (error) => {
+      console.error('🚨 Telegram bot error:', error.message);
+    });
+    
+    console.log('✅ Telegram bot initialized with improved polling');
   }
   return bot;
 }
@@ -23,10 +47,23 @@ const userSpeeds = new Map();
 /**
  * Initialize all Telegram bot event handlers
  */
-function initializeTelegramBot() {
-  const bot = getTelegramBot(); // Get the bot instance
+async function initializeTelegramBot() {
+  try {
+    const bot = getTelegramBot(); // Get the bot instance
 
-  console.log('🤖 Initializing Telegram bot...');
+    console.log('🤖 Initializing Telegram bot...');
+    
+    // Verify bot connection
+    const botInfo = await bot.getMe();
+    console.log(`✅ Bot connected successfully: @${botInfo.username} (${botInfo.first_name})`);
+    
+    // Clear any existing webhook (in case it was set before)
+    try {
+      await bot.deleteWebHook();
+      console.log('✅ Webhook cleared for polling mode');
+    } catch (webhookError) {
+      console.log('ℹ️  No webhook to clear');
+    }
 
   // Handle /start command
   bot.onText(/\/start/, (msg) => {
@@ -267,6 +304,11 @@ I convert your text messages into high-quality audio using OpenAI's advanced TTS
   });
 
   console.log('✅ Telegram bot initialized successfully');
+  
+  } catch (error) {
+    console.error('❌ Failed to initialize Telegram bot:', error.message);
+    throw error;
+  }
 }
 
 /**
