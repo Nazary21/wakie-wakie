@@ -144,8 +144,13 @@ async function initializeServices() {
     
     console.log('✅ Environment variables validated');
     
-    // Initialize Telegram bot
-    await initializeTelegramBot();
+    // Initialize Telegram bot (non-blocking to prevent server crashes)
+    try {
+      await initializeTelegramBot();
+    } catch (telegramError) {
+      console.error('⚠️ Telegram bot failed to initialize:', telegramError.message);
+      console.log('🚀 Continuing without Telegram bot - API server will still work');
+    }
     
     // Schedule cleanup of old files every hour
     setInterval(() => {
