@@ -114,6 +114,7 @@ app.use('*', (req, res) => {
 async function initializeServices() {
   try {
     console.log('🚀 Starting Telegram Text-to-Audio Bot Server...');
+    // Force Railway restart to fix Telegram polling conflicts
     console.log('🔍 Environment check:');
     console.log(`   • NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`   • PORT: ${process.env.PORT || 'not set'}`);
