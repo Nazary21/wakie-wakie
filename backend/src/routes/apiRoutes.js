@@ -99,12 +99,13 @@ router.get('/voices', (req, res) => {
 });
 
 /**
- * POST /api/voice-preview
+ * GET /api/voice-preview/:voice
  * Generate voice preview audio
  */
-router.post('/voice-preview', async (req, res) => {
+router.get('/voice-preview/:voice', async (req, res) => {
   try {
-    const { voice = 'alloy', speed = 1.0 } = req.body;
+    const { voice } = req.params;
+    const speed = 1.0; // Default speed for previews
     
     // Validate voice
     const validVoices = getVoiceOptions().map(v => v.value);
@@ -248,6 +249,39 @@ router.post('/validate-text', (req, res) => {
     res.status(500).json({ 
       error: 'Failed to validate text',
       code: 'VALIDATION_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/debug-telegram
+ * Debug Telegram connection from Railway
+ */
+router.get('/debug-telegram', async (req, res) => {
+  try {
+    // Test direct API call to Telegram
+    const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`);
+    const data = await response.json();
+    
+    res.json({
+      success: response.ok,
+      status: response.status,
+      telegramResponse: data,
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        hasToken: !!process.env.TELEGRAM_BOT_TOKEN,
+        tokenPrefix: process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...' : 'missing'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        hasToken: !!process.env.TELEGRAM_BOT_TOKEN,
+        tokenPrefix: process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...' : 'missing'
+      }
     });
   }
 });
